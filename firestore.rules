@@ -1,0 +1,81 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny for all collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && (!('name' in request.resource.data) || isValidString(request.resource.data.name, 1, 100))
+        && (!('email' in request.resource.data) || isValidString(request.resource.data.email, 3, 150))
+        && (!('phone' in request.resource.data) || isValidString(request.resource.data.phone, 5, 25));
+      allow delete: if false;
+    }
+
+    // 2. Shopping Carts
+    match /carts/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && request.resource.data.userId == userId
+        && request.resource.data.items is list
+        && request.resource.data.items.size() <= 200;
+      allow delete: if isOwner(userId);
+    }
+
+    // 3. Customer Orders
+    match /orders/{orderId} {
+      // Authenticated users may read their own orders; guests can fetch their specific placed order
+      allow get: if (isAuthenticated() && resource.data.userId == request.auth.uid) ||
+                    (!isAuthenticated() && resource.data.userId is string);
+      allow list: if isAuthenticated() && resource.data.userId == request.auth.uid;
+
+      // Order creation requires either an authenticated user or a validated guest order payload
+      allow create: if (
+          (isAuthenticated() && request.resource.data.userId == request.auth.uid) ||
+          (!isAuthenticated() && request.resource.data.userId is string && request.resource.data.userId.size() >= 3 && request.resource.data.userId.size() <= 64)
+        )
+        && isValidString(request.resource.data.orderId, 3, 100)
+        && request.resource.data.items is list
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 200
+        && (request.resource.data.total is number || request.resource.data.total is int)
+        && request.resource.data.total >= 0
+        && request.resource.data.total <= 10000000
+        && (request.resource.data.itemTotal is number || request.resource.data.itemTotal is int)
+        && request.resource.data.itemTotal >= 0
+        && request.resource.data.itemTotal <= 10000000
+        && request.resource.data.status in ['pending_payment', 'placed', 'packing', 'out_for_delivery', 'delivered', 'cancelled']
+        && (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus in ['pending', 'paid', 'failed'])
+        && (!('deliveryInstruction' in request.resource.data) || (request.resource.data.deliveryInstruction is string && request.resource.data.deliveryInstruction.size() <= 500));
+
+      // Only the owner can update their own order without altering ownership
+      allow update: if (
+          (isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid) ||
+          (!isAuthenticated() && resource.data.userId == request.resource.data.userId)
+        )
+        && request.resource.data.status in ['pending_payment', 'placed', 'packing', 'out_for_delivery', 'delivered', 'cancelled']
+        && (!('paymentStatus' in request.resource.data) || request.resource.data.paymentStatus in ['pending', 'paid', 'failed']);
+
+      allow delete: if false;
+    }
+  }
+}
+

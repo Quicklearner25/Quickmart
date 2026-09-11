@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "type": "object",
+      "description": "User profile in the application",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id"]
+    },
+    "Cart": {
+      "title": "Cart",
+      "type": "object",
+      "description": "User shopping cart synchronized across devices",
+      "properties": {
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "items"]
+    },
+    "Order": {
+      "title": "Order",
+      "type": "object",
+      "description": "Customer grocery order with tracking details",
+      "properties": {
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "items": { "type": "array" },
+        "itemTotal": { "type": "number" },
+        "deliveryFee": { "type": "number" },
+        "handlingFee": { "type": "number" },
+        "discount": { "type": "number" },
+        "tip": { "type": "number" },
+        "total": { "type": "number" },
+        "savings": { "type": "number" },
+        "location": { "type": "object" },
+        "deliveryInstruction": { "type": "string" },
+        "placedAt": { "type": "string" },
+        "status": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "razorpayOrderId": { "type": "string" },
+        "razorpayPaymentId": { "type": "string" },
+        "paymentVerifiedAt": { "type": "string" },
+        "etaMinutes": { "type": "number" }
+      },
+      "required": ["orderId", "items", "total", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    },
+    "/carts/{userId}": {
+      "schema": "Cart",
+      "description": "User active cart document"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer order document"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Quickmart",
+  "description": "Quickmart 10-minute grocery delivery store with 1000+ products, real-time cart, category browsing, location selector, and instant checkout.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
